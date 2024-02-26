@@ -40,7 +40,7 @@ router
   .route("/change-avatar")
   .patch(verifyJWT, upload.single("avatar"), setUserAvatar);
 router
-  .route("/change-coverImage")
-  .patch(verifyJWT, upload.single("coverImage"), setUserCoverImage);
+  .route("/change-cover-image")
+  .patch(verifyJWT, upload.single("cover"), setUserCoverImage);
 
 export default router;

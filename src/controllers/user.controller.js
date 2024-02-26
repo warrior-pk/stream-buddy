@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
+import jwt from "jsonwebtoken";
 import {
   deleteFromCloudinary,
   uploadOnCloudinary,
@@ -262,7 +263,9 @@ const setUserCoverImage = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Cover image file is missing");
   }
 
-  //TODO: delete old image - assignment
+  const oldUser = await User.findById(req.user?._id).select("-password");
+  const cloudPath = oldUser.coverImage;
+  console.log("Cloud Path ", cloudPath);
 
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
@@ -279,7 +282,8 @@ const setUserCoverImage = asyncHandler(async (req, res) => {
     },
     { new: true }
   ).select("-password");
-
+  const response = await deleteFromCloudinary(cloudPath);
+  console.log(response);
   return res
     .status(200)
     .json(new ApiResponse(200, user, "Cover image updated successfully"));

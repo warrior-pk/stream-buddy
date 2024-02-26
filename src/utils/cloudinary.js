@@ -52,7 +52,6 @@ const deleteFromCloudinary = async (cloudPath) => {
   try {
     if (!cloudPath) return null;
     const shortPath = formatUrl(cloudPath);
-    console.log("Short Path", shortPath);
     const response = await cloudinary.uploader.destroy(shortPath, {
       invalidate: true,
     });
