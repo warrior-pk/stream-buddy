@@ -1,4 +1,9 @@
+#public folder
+public/temp/*
+!public/temp/.gitkeep
 
+build
+dist
 
 # Logs
 logs
