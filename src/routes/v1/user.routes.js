@@ -4,11 +4,17 @@ import {
   registerUser,
   logoutUser,
   refreshAccessToken,
+  getCurrentUser,
+  setCurrentPassword,
+  setUserAvatar,
+  setUserCoverImage,
 } from "../../controllers/user.controller.js";
 import { upload } from "../../middlewares/multer.middleware.js";
 import { verifyJWT } from "../../middlewares/auth.middleware.js";
 const router = Router();
 
+//Core Routes
+router.route("/logout").get(verifyJWT, logoutUser);
 router.route("/register").post(
   upload.fields([
     {
@@ -23,7 +29,18 @@ router.route("/register").post(
   registerUser
 );
 router.route("/login").post(loginUser);
-router.route("/logout").get(verifyJWT, logoutUser);
 router.route("/refresh-token").post(refreshAccessToken);
+
+// Getter Routes
+router.route("/current-user").get(verifyJWT, getCurrentUser);
+
+// Setters Routes
+router.route("/change-password").patch(verifyJWT, setCurrentPassword);
+router
+  .route("/change-avatar")
+  .patch(verifyJWT, upload.single("avatar"), setUserAvatar);
+router
+  .route("/change-coverImage")
+  .patch(verifyJWT, upload.single("coverImage"), setUserCoverImage);
 
 export default router;
