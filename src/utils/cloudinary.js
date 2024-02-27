@@ -1,5 +1,4 @@
 import { v2 as cloudinary } from "cloudinary";
-import { setConfig, extractPublicId } from "cloudinary-build-url";
 import fs from "fs";
 import { CLOUDINARY_BUCKET_NAME, VIDEO_FOLDER } from "../constants.js";
 
@@ -7,10 +6,6 @@ cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-setConfig({
-  cloudName: process.env.CLOUDINARY_CLOUD_NAME,
 });
 
 const uploadOnCloudinary = async (localFilePath) => {
@@ -59,8 +54,11 @@ const uploadLargeOnCloudinary = async (localFilePath) => {
 const deleteFromCloudinary = async (cloudPath) => {
   try {
     if (!cloudPath) return null;
-    const public_id = extractPublicId(cloudPath);
+    const public_id = extractPublicId(cloudPath, CLOUDINARY_BUCKET_NAME);
+    console.log(public_id);
+    const resourceType = extractResourseType(cloudPath);
     const response = await cloudinary.uploader.destroy(public_id, {
+      resource_type: resourceType,
       invalidate: true,
     });
     console.log("Deleted Successfully");
@@ -71,4 +69,25 @@ const deleteFromCloudinary = async (cloudPath) => {
   }
 };
 
+const extractResourseType = (cloudinaryUrl) => {
+  const regex = /\/(image|video|raw)\/upload\//;
+  const match = cloudinaryUrl.match(regex);
+  return match ? match[1] : null;
+};
+
+const extractPublicId = (cloudinaryUrl, bucketName) => {
+  const parts = cloudinaryUrl.split("/");
+  const indexOfBucketName = parts.indexOf(bucketName);
+
+  if (indexOfBucketName === -1) {
+    return null;
+  }
+
+  const pathAfterBucketName = parts.slice(indexOfBucketName + 1).join("/");
+  const partsWithoutExtension = pathAfterBucketName
+    .split("/")
+    .map((part) => part.split(".")[0]);
+
+  return bucketName + "/" + partsWithoutExtension.join("/");
+};
 export { uploadOnCloudinary, deleteFromCloudinary, uploadLargeOnCloudinary };

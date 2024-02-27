@@ -84,8 +84,9 @@ const deleteVideo = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Not authorized to delete");
   }
 
-  await Video.findByIdAndDelete(video._id);
   await deleteFromCloudinary(video.videoFile);
+  await deleteFromCloudinary(video.thumbnail);
+  await Video.findByIdAndDelete(video._id);
 
   return res.status(200).json(
     new ApiResponse(
