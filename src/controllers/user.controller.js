@@ -212,6 +212,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Username missing");
   }
   const channel = await User.aggregate([
+    // first find user
     {
       $match: {
         username: username?.toLowerCase(),
@@ -235,6 +236,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         as: "subscribedTo",
       },
     },
+    // addeded some extra fields
     {
       $addFields: {
         subscribersCount: {
@@ -254,6 +256,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
       },
     },
+    // projected necessary data (Array)
     {
       $project: {
         fullName: 1,
@@ -265,6 +268,10 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         avatar: 1,
         coverImage: 1,
       },
+    },
+    // converted Array result into object
+    {
+      $replaceRoot: { newRoot: { $first: "$$ROOT" } },
     },
   ]);
 
@@ -281,13 +288,59 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 });
 
 const getWatchHistory = asyncHandler(async (req, res) => {
-  const watchHistory = [
+  const historyResponse = [
+    // firstly matching user
     {
       $match: {
         _id: mongoose.Types.ObjectId(req.user?._id),
       },
     },
+    // looking for video details
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "owner",
+        as: "watchHistory",
+        // for each video getting owner
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              // for each owner collecting basic info (Array)
+              pipeline: [
+                {
+                  $project: {
+                    username: 1,
+                    fullName: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          // converting Array to object by overwriting owner
+          {
+            $addFields: {
+              owner: { $first: "$owner" },
+            },
+          },
+        ],
+      },
+    },
   ];
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        historyResponse[0].watchHistory,
+        "Watch history fetched successfully"
+      )
+    );
 });
 
 // Setters
@@ -384,4 +437,5 @@ export {
   setUserAvatar,
   setUserCoverImage,
   getUserChannelProfile,
+  getWatchHistory,
 };
