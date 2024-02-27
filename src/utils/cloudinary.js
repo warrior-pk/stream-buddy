@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
+import { setConfig, extractPublicId } from "cloudinary-build-url";
 import fs from "fs";
 import { CLOUDINARY_BUCKET_NAME } from "../constants.js";
 
@@ -8,29 +9,9 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-function formatUrl(cloudinaryUrl) {
-  // Extract the public ID using a regular expression
-  const match = cloudinaryUrl.match(/v\w+/);
-  if (!match) {
-    return null; // Public ID not found in the URL
-  }
-  const publicId = match[0];
-
-  const parts = cloudinaryUrl.split("/");
-  const indexOfPublicId = parts.indexOf(publicId);
-
-  if (indexOfPublicId === -1) {
-    return null; // Public ID not found in the path
-  }
-
-  // Extract the path after the public ID, excluding any extensions
-  const pathWithoutExtension = parts
-    .slice(indexOfPublicId + 1)
-    .map((part) => part.split(".")[0])
-    .join("/");
-
-  return pathWithoutExtension;
-}
+setConfig({
+  cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+});
 
 const uploadOnCloudinary = async (localFilePath) => {
   try {
@@ -51,8 +32,8 @@ const uploadOnCloudinary = async (localFilePath) => {
 const deleteFromCloudinary = async (cloudPath) => {
   try {
     if (!cloudPath) return null;
-    const shortPath = formatUrl(cloudPath);
-    const response = await cloudinary.uploader.destroy(shortPath, {
+    const public_id = extractPublicId(cloudPath);
+    const response = await cloudinary.uploader.destroy(public_id, {
       invalidate: true,
     });
     console.log("Deleted Successfully");

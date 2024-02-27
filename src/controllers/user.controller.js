@@ -377,7 +377,7 @@ const setUserAvatar = asyncHandler(async (req, res) => {
 
   const oldUser = await User.findById(req.user?._id).select("-password");
   const cloudPath = oldUser.avatar;
-  console.log("Cloud Path ", cloudPath);
+  // console.log("Cloud Path ", cloudPath);
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {

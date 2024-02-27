@@ -28,4 +28,9 @@ import videRouter from "./routes/v1/video.routes.js";
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/videos", videRouter);
 
+// 404 missing route handler
+app.use((req, res, next) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
 export { app };
