@@ -7,6 +7,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import {
   uploadOnCloudinary,
   uploadLargeOnCloudinary,
+  deleteFromCloudinary,
 } from "../utils/cloudinary.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -49,7 +50,17 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  //TODO: get video by id
+  if (!videoId.trim()) {
+    throw new ApiError(400, "videoId is required");
+  }
+
+  const video = await Video.findById(videoId.trim());
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, video, "Video fetched successfully"));
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
@@ -59,11 +70,67 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  //TODO: delete video
+  if (!videoId.trim()) {
+    throw new ApiError(400, "videoId is required");
+  }
+
+  const video = await Video.findById(videoId.trim());
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+
+  if (video.owner.toString() !== req.user._id.toString()) {
+    throw new ApiError(400, "Not authorized to delete");
+  }
+
+  await Video.findByIdAndDelete(video._id);
+  await deleteFromCloudinary(video.videoFile);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        video: {
+          _id: video._id,
+          title: video.title,
+          description: video.description,
+          duration: video.duration,
+          views: video.views,
+        },
+        deletedBy: {
+          _id: req.user._id,
+          username: req.user.username,
+          fullName: req.user.fullName,
+        },
+        deletedAt: new Date().toLocaleString(),
+      },
+      `Video deleted successfully`
+    )
+  );
 });
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  if (!videoId.trim()) {
+    throw new ApiError(400, "videoId is required");
+  }
+
+  const video = await Video.findById(videoId.trim());
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+  video.isPublished = !video.isPublished;
+  const toogledVideo = await video.save({ validateBeforeSave: false });
+  const isPub = toogledVideo.isPublished;
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        toogledVideo,
+        `Video ${isPub ? `published` : `hidden`} successfully`
+      )
+    );
 });
 
 export {
