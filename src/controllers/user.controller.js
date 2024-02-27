@@ -7,6 +7,7 @@ import {
   deleteFromCloudinary,
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
+import mongoose from "mongoose";
 
 // Token Controllers
 const generateAccessAndRefreshToken = async (userId) => {
@@ -277,6 +278,16 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     .res.json(
       new ApiResponse(200, channel[0], "User channel fetched successfully")
     );
+});
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const watchHistory = [
+    {
+      $match: {
+        _id: mongoose.Types.ObjectId(req.user?._id),
+      },
+    },
+  ];
 });
 
 // Setters
