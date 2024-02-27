@@ -8,6 +8,8 @@ import {
   setCurrentPassword,
   setUserAvatar,
   setUserCoverImage,
+  getUserChannelProfile,
+  getWatchHistory,
 } from "../../controllers/user.controller.js";
 import { upload } from "../../middlewares/multer.middleware.js";
 import { verifyJWT } from "../../middlewares/auth.middleware.js";
@@ -33,6 +35,8 @@ router.route("/refresh-token").post(refreshAccessToken);
 
 // Getter Routes
 router.route("/current-user").get(verifyJWT, getCurrentUser);
+router.route("/c/:username").get(verifyJWT, getUserChannelProfile);
+router.route("/history").get(verifyJWT, getWatchHistory);
 
 // Setters Routes
 router.route("/change-password").patch(verifyJWT, setCurrentPassword);
