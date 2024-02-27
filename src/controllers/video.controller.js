@@ -70,12 +70,8 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  if (!videoId.trim()) {
-    throw new ApiError(400, "videoId is required");
-  }
-
-  if (!isValidObjectId(videoId)) {
-    throw new ApiError(404, "Video not found");
+  if (!isValidObjectId(videoId.trim())) {
+    throw new ApiError(404, "Invalid videoId");
   }
 
   const video = await Video.findById(videoId.trim());
