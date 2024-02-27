@@ -4,7 +4,10 @@ import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  uploadOnCloudinary,
+  uploadLargeOnCloudinary,
+} from "../utils/cloudinary.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
@@ -12,12 +15,11 @@ const getAllVideos = asyncHandler(async (req, res) => {
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
-  // TODO: get video, upload to cloudinary, create video
   const { title, description } = req.body;
   if (!title.trim() || !description.trim()) {
     throw new ApiError("400", "All fields required");
   }
-  console.log(req.files);
+  //   console.log(req.files);
   const localVideoPath = req.files?.videoFile?.[0].path;
   const localThumbnailPath = req.files?.thumbnail?.[0].path;
 
@@ -25,10 +27,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Missing file or files");
   }
 
-  const cloudVideoPath = await uploadOnCloudinary(localVideoPath);
+  const cloudVideoPath = await uploadLargeOnCloudinary(localVideoPath);
   const cloudThumbnailPath = await uploadOnCloudinary(localThumbnailPath);
-
-  console.log(cloudVideoPath);
 
   const video = await Video.create({
     videoFile: cloudVideoPath.url,
@@ -39,9 +39,12 @@ const publishAVideo = asyncHandler(async (req, res) => {
     owner: req.user._id,
   });
 
+  if (!video) {
+    throw new ApiError(500, "Could not publish video");
+  }
   return res
     .status(201)
-    .json(new ApiResponse(201, {}, "Video Published Successfully!"));
+    .json(new ApiResponse(201, video, "Video Published Successfully!"));
 });
 
 const getVideoById = asyncHandler(async (req, res) => {
