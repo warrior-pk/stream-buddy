@@ -74,7 +74,12 @@ const deleteVideo = asyncHandler(async (req, res) => {
     throw new ApiError(400, "videoId is required");
   }
 
+  if (!isValidObjectId(videoId)) {
+    throw new ApiError(404, "Video not found");
+  }
+
   const video = await Video.findById(videoId.trim());
+
   if (!video) {
     throw new ApiError(404, "Video not found");
   }
