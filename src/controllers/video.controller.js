@@ -12,7 +12,8 @@ import {
 
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
-  //TODO: get all videos based on query, sort, pagination
+  //TODO: get all videos based on search+query, sort:asc, sortBy:views, user-subscribed-at-top
+  // Priority: Title (match then subs first) > Description(matched than subs first)
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -64,8 +65,39 @@ const getVideoById = asyncHandler(async (req, res) => {
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
+  const { title, description } = req.body;
   const { videoId } = req.params;
-  //TODO: update video details like title, description, thumbnail
+  if (!isValidObjectId(videoId.trim())) {
+    throw new ApiError(400, "Invalid videoId");
+  }
+  const filter = {
+    _id: videoId,
+    owner: req.user._id,
+  };
+  const video = await Video.findOne(filter);
+
+  if (!video) {
+    throw new ApiError(400, "Video not found");
+  }
+
+  if (title) {
+    video.title = title;
+  }
+  if (description) {
+    video.description = description;
+  }
+
+  const thumbnailLocalPath = req.file?.path;
+  if (thumbnailLocalPath) {
+    console.log(thumbnailLocalPath);
+    const cloudPath = await uploadOnCloudinary(thumbnailLocalPath);
+    await deleteFromCloudinary(video.thumbnail);
+    video.thumbnail = cloudPath.url;
+  }
+  const updatedVideo = await video.save({ validateBeforeSave: false });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedVideo, "Video updated"));
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
