@@ -49,6 +49,65 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
   const { subscriberId } = req.params;
+  if (!isValidObjectId(subscriberId)) {
+    throw new ApiError(400, "Invalid subscriber");
+  }
+
+  const channels = await Subscription.aggregate([
+    {
+      $match: {
+        subscriber: new mongoose.Types.ObjectId("65de0ade1c17da32d1914108"),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "channel",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          {
+            $lookup: {
+              from: "subscriptions",
+              localField: "_id",
+              foreignField: "channel",
+              as: "subscribers",
+            },
+          },
+          {
+            $addFields: {
+              subscribersCount: {
+                $size: "$subscribers",
+              },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              username: 1,
+              fullName: 1,
+              avatar: 1,
+              coverImage: 1,
+              subscribersCount: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        owner: { $first: "$owner" },
+      },
+    },
+  ]);
+
+  if (!channels) {
+    throw new ApiError(500, "Couldn't fetch channels");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, channels, "Channel fetched successfully"));
 });
 
 export { toggleSubscription, getUserChannelSubscribers, getSubscribedChannels };
