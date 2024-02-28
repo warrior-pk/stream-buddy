@@ -23,10 +23,12 @@ app.use(cookieParser());
 // routes
 import userRouter from "./routes/v1/user.routes.js";
 import videRouter from "./routes/v1/video.routes.js";
+import subsRouter from "./routes/v1/subscription.routes.js";
 
 // routing
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/videos", videRouter);
+app.use("/api/v1/subscriptions", subsRouter);
 
 // 404 missing route handler
 app.use((req, res, next) => {
