@@ -1,4 +1,4 @@
-import mongoose, { isValidObjectId } from "mongoose";
+import mongoose, { isValidObjectId, mongo } from "mongoose";
 import { Video } from "../models/video.model.js";
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -10,10 +10,80 @@ import {
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
 
+const decodeQuery = (query) => {
+  return query.replace("%20", " ").trim();
+};
+
 const getAllVideos = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    sortBy,
+    sortType = "asc",
+    query,
+    userId,
+  } = req.query;
   //TODO: get all videos based on search+query, sort:asc, sortBy:views, user-subscribed-at-top
-  // Priority: Title (match then subs first) > Description(matched than subs first)
+  //TODO: Priority: Title (match then subs first) > Description(matched than subs first)
+  const decodedQuery = decodeQuery(query);
+  const uid = new mongoose.Types.ObjectId(userId?.trim());
+
+  // Match stage to filter videos based on decoded search query
+  const matchStage = decodedQuery
+    ? {
+        $match: {
+          $or: [
+            { title: { $regex: decodedQuery, $options: "i" } },
+            { description: { $regex: decodedQuery, $options: "i" } },
+          ],
+        },
+      }
+    : { $match: {} };
+
+  // Sort stage based on sortBy and sortType parameters
+  const sortStage =
+    sortBy && sortType
+      ? { $sort: { [sortBy]: sortType === "asc" ? 1 : -1 } }
+      : { $sort: { createdAt: -1 } };
+
+  console.log(matchStage);
+  // Aggregation pipeline
+  const pipeline = await Video.aggregate([
+    matchStage,
+    sortStage,
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              username: 1,
+              avatar: 1,
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  Video.aggregatePaginate(pipeline, {
+    page: Number(page),
+    limit: Number(limit),
+  })
+    .then((pageResult) => {
+      return res
+        .status(200)
+        .json(
+          new ApiResponse(200, pageResult, `Successfully fetched page: ${page}`)
+        );
+    })
+    .catch((err) => {
+      throw new ApiError(500, "Could not fetch videos");
+    });
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
